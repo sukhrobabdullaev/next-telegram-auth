@@ -14,19 +14,51 @@ export const getBooks = async (): Promise<IBook[]> => {
   return response.json();
 };
 
-export const createBook = async (formData: FormData): Promise<IBook> => {
+export const getBookById = async (id: string): Promise<IBook> => {
+  const session = await getSession();
+  const response = await fetch(`/api/books/${id}`, {
+    headers: {
+      Authorization: `Bearer ${session}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch book");
+  }
+  return response.json();
+};
+
+export const updateBook = async (id: string, data: any): Promise<IBook> => {
+  const session = await getSession();
+  const response = await fetch(`/api/books/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update book");
+  }
+  return response.json();
+};
+
+export const createBook = async (data: any): Promise<IBook> => {
   const session = await getSession();
   const response = await fetch("/api/books", {
     method: "POST",
     headers: {
+      "Content-Type": "application/json",
       Authorization: `Bearer ${session}`,
     },
-    body: formData,
+    body: JSON.stringify(data),
   });
+
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || "Failed to create book");
+    throw new Error(error.error || "Failed to create book");
   }
+
   return response.json();
 };
 

@@ -24,22 +24,45 @@ import { toast } from "sonner"
 
 export default function BooksPage() {
   const [books, setBooks] = useState<IBook[]>([])
+  const [filteredBooks, setFilteredBooks] = useState<IBook[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
   const router = useRouter()
 
   useEffect(() => {
     fetchBooks()
   }, [])
 
+  useEffect(() => {
+    filterBooks()
+  }, [searchTerm, books])
+
   const fetchBooks = async () => {
     try {
       const data = await getBooks()
       setBooks(data)
+      setFilteredBooks(data)
     } catch (error) {
       toast.error("Failed to fetch books")
     } finally {
       setLoading(false)
     }
+  }
+
+  const filterBooks = () => {
+    const filtered = books.filter((book) => {
+      const searchLower = searchTerm.toLowerCase()
+      return (
+        book.title.toLowerCase().includes(searchLower) ||
+        (book.category?.name && book.category.name.toLowerCase().includes(searchLower)) ||
+        book.price.toString().includes(searchTerm)
+      )
+    })
+    setFilteredBooks(filtered)
+  }
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
   }
 
   const handleDelete = async (id: string) => {
@@ -77,7 +100,13 @@ export default function BooksPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="relative w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input type="search" placeholder="Search books..." className="pl-8" />
+              <Input
+                type="search"
+                placeholder="Search books..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={handleSearch}
+              />
             </div>
           </div>
 
@@ -93,7 +122,7 @@ export default function BooksPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {books.map((book) => (
+              {filteredBooks.map((book) => (
                 <TableRow key={book.id}>
                   <TableCell>
                     <Image
@@ -107,7 +136,7 @@ export default function BooksPage() {
                   <TableCell className="font-medium">{book.title}</TableCell>
                   <TableCell>${book.price.toFixed(2)}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{book.category.name}</Badge>
+                    <Badge variant="outline">{book.category?.name}</Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
