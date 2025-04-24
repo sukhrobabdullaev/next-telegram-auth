@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Category from "@/models/category";
-import { adminMiddleware } from "@/middleware/auth";
 
 // GET single category
 export async function GET(
@@ -29,22 +28,29 @@ export async function GET(
   }
 }
 
-// UPDATE category
+// PUT update category
 export async function PUT(
-  req: Request,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
-  
   try {
     await connectToDatabase();
-    const isAdmin = await adminMiddleware(req as any);
-    if (isAdmin.status !== 200) return isAdmin;
+    const { id } = await params;
+    const body = await request.json();
+    const { name, description } = body;
 
-    const body = await req.json();
-    const category = await Category.findByIdAndUpdate(id, body, {
-      new: true,
-    });
+    if (!name || !description) {
+      return NextResponse.json(
+        { error: "Name and description are required" },
+        { status: 400 }
+      );
+    }
+
+    const category = await Category.findByIdAndUpdate(
+      id,
+      { name, description },
+      { new: true }
+    );
 
     if (!category) {
       return NextResponse.json(
@@ -64,14 +70,12 @@ export async function PUT(
 
 // DELETE category
 export async function DELETE(
-  req: Request,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
   try {
     await connectToDatabase();
-    const isAdmin = await adminMiddleware(req as any);
-    if (isAdmin.status !== 200) return isAdmin;
+    const { id } = await params;
 
     const category = await Category.findByIdAndDelete(id);
 

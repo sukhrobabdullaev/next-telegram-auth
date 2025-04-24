@@ -55,18 +55,37 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(req: Request) {
+export async function GET(request: Request) {
   try {
     await connectToDatabase();
 
-    const books = await Book.find().populate("category", "name");
-    return NextResponse.json(books, { status: 200 });
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
+
+    const [books, total] = await Promise.all([
+      Book.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("category"),
+      Book.countDocuments(),
+    ]);
+
+    return NextResponse.json({
+      books,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
-    console.error("Error in GET /api/books:", error);
     return NextResponse.json(
       { error: "Error fetching books" },
       { status: 500 }
     );
   }
 }
-

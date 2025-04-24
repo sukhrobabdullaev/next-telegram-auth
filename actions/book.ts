@@ -1,9 +1,22 @@
 import { IBook } from "@/models/book";
 import { getSession } from "./auth";
 
-export const getBooks = async (): Promise<IBook[]> => {
+interface PaginatedResponse {
+  books: IBook[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export const getBooks = async (
+  page: number = 1,
+  limit: number = 10
+): Promise<PaginatedResponse> => {
   const session = await getSession();
-  const response = await fetch("/api/books", {
+  const response = await fetch(`/api/books?page=${page}&limit=${limit}`, {
     headers: {
       Authorization: `Bearer ${session}`,
     },

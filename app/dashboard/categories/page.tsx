@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -22,46 +24,68 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { getCategories, createCategory, updateCategory, deleteCategory } from "@/actions/category"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { ICategory } from "@/models/category"
 
 export default function CategoriesPage() {
-  const categories = [
-    {
-      id: "1",
-      name: "Religious",
-      description: "Books related to religion and spirituality",
-      bookCount: 45,
-    },
-    {
-      id: "2",
-      name: "Business",
-      description: "Books about business, entrepreneurship, and finance",
-      bookCount: 32,
-    },
-    {
-      id: "3",
-      name: "Fiction",
-      description: "Novels and fictional stories",
-      bookCount: 28,
-    },
-    {
-      id: "4",
-      name: "Self-Help",
-      description: "Personal development and self-improvement books",
-      bookCount: 24,
-    },
-    {
-      id: "5",
-      name: "Biography",
-      description: "Life stories and autobiographies",
-      bookCount: 13,
-    },
-  ]
+  const [categories, setCategories] = useState<ICategory[]>([])
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<ICategory | null>(null)
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const fetchCategories = async () => {
+    try {
+      const data = await getCategories()
+      setCategories(data)
+    } catch (error) {
+      toast.error("Failed to fetch categories")
+    }
+  }
+
+  const handleAddCategory = async (formData: FormData) => {
+    try {
+      await createCategory(formData)
+      toast.success("Category created successfully")
+      setIsAddDialogOpen(false)
+      fetchCategories()
+    } catch (error) {
+      toast.error("Failed to create category")
+    }
+  }
+
+  const handleUpdateCategory = async (formData: FormData) => {
+    if (!selectedCategory) return
+    try {
+      await updateCategory(selectedCategory.id, formData)
+      toast.success("Category updated successfully")
+      setIsEditDialogOpen(false)
+      fetchCategories()
+    } catch (error) {
+      toast.error("Failed to update category")
+    }
+  }
+
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      await deleteCategory(id)
+      toast.success("Category deleted successfully")
+      fetchCategories()
+    } catch (error) {
+      toast.error("Failed to delete category")
+    }
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Categories</h1>
-        <Dialog>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -73,20 +97,24 @@ export default function CategoriesPage() {
               <DialogTitle>Add New Category</DialogTitle>
               <DialogDescription>Create a new category for organizing your books.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Category Name</Label>
-                <Input id="name" placeholder="Enter category name" />
+            <form action={handleAddCategory}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Category Name</Label>
+                  <Input id="name" name="name" placeholder="Enter category name" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Input id="description" name="description" placeholder="Enter category description" required />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input id="description" placeholder="Enter category description" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline">Cancel</Button>
-              <Button>Save Category</Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Category</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -112,7 +140,7 @@ export default function CategoriesPage() {
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell>{category.description}</TableCell>
                   <TableCell>
-                    <Badge>{category.bookCount}</Badge>
+                    <Badge>{category.books?.length || 0}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -125,11 +153,19 @@ export default function CategoriesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedCategory(category)
+                            setIsEditDialogOpen(true)
+                          }}
+                        >
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDeleteCategory(category.id)}
+                        >
                           <Trash className="mr-2 h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
@@ -142,6 +178,47 @@ export default function CategoriesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription>Update the category details.</DialogDescription>
+          </DialogHeader>
+          {selectedCategory && (
+            <form action={handleUpdateCategory}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Category Name</Label>
+                  <Input
+                    id="edit-name"
+                    name="name"
+                    defaultValue={selectedCategory.name}
+                    placeholder="Enter category name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Input
+                    id="edit-description"
+                    name="description"
+                    defaultValue={selectedCategory.description}
+                    placeholder="Enter category description"
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update Category</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
