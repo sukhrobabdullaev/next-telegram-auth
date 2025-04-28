@@ -1,15 +1,12 @@
 import type React from "react"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Modern Bookstore",
-  description: "A modern bookstore management system",
-  generator: 'v0.dev'
+  title: "Next.js Telegram Authentication",
+  description: "Next.js Backend for Telegram Authentication",
 }
 
 export default function RootLayout({
@@ -20,10 +17,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        {children}
+        <footer className="text-center text-sm text-muted-foreground">
+          &copy; {new Date().getFullYear()} Made with ❤️ by <a href="https://sukhrob.io" className="underline text-blue-500" target="_blank" rel="noopener noreferrer">sukhrob.io</a>
+        </footer>
       </body>
     </html>
   )
