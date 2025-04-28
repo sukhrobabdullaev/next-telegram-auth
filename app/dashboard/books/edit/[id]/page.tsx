@@ -8,20 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ICategory } from "@/models/category"
 import { UploadButton } from "@/lib/uploadthing"
 import { getBookById, updateBook } from "@/actions/book"
+import { IBook } from "@/models/book"
+import Image from "next/image"
 
 export default function EditBookPage() {
-  const [book, setBook] = useState<any>(null)
+  const [book, setBook] = useState<IBook | null>(null)
   const [categories, setCategories] = useState<ICategory[]>([])
   const [loading, setLoading] = useState(false)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [additionalImages, setAdditionalImages] = useState<string[]>([])
   const router = useRouter()
   const { id } = useParams() as { id: string }
 
@@ -34,7 +35,8 @@ export default function EditBookPage() {
     try {
       const data = await getBookById(id)
       setBook(data)
-      setCoverImageUrl(data.coverImage)
+      setCoverImageUrl(data.images[0] || null)
+      setAdditionalImages(data.images.slice(1))
     } catch (err) {
       toast.error("Failed to fetch book")
     }
@@ -50,15 +52,6 @@ export default function EditBookPage() {
     }
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setImagePreview(reader.result as string)
-      reader.readAsDataURL(file)
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
@@ -67,10 +60,14 @@ export default function EditBookPage() {
     const updated = {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
+      author: formData.get("author") as string,
+      publisher: formData.get("publisher") as string,
+      publicationDate: formData.get("publicationDate") as string,
+      ISBN: formData.get("ISBN") as string,
       price: formData.get("price") as string,
       category: formData.get("category") as string,
       stock: formData.get("stock") as string,
-      coverImage: coverImageUrl,
+      images: [coverImageUrl, ...additionalImages].filter(Boolean) as string[],
     }
 
     try {
@@ -102,12 +99,32 @@ export default function EditBookPage() {
           <Card>
             <CardHeader>
               <CardTitle>Book Details</CardTitle>
-              <CardDescription>Update your book’s details.</CardDescription>
+              <CardDescription>Update your book's details.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input id="title" name="title" defaultValue={book.title} required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="author">Author</Label>
+                <Input id="author" name="author" defaultValue={book.author} required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="publisher">Publisher</Label>
+                <Input id="publisher" name="publisher" defaultValue={book.publisher} required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="publicationDate">Publication Date</Label>
+                <Input id="publicationDate" name="publicationDate" type="date" defaultValue={new Date(book.publicationDate).toISOString().split('T')[0]} required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ISBN">ISBN</Label>
+                <Input id="ISBN" name="ISBN" defaultValue={book.ISBN} required />
               </div>
 
               <div className="space-y-2">
@@ -117,7 +134,7 @@ export default function EditBookPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select name="category" defaultValue={book.category} required>
+                <Select name="category" defaultValue={book.category?.id} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
@@ -140,24 +157,21 @@ export default function EditBookPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Book Image & Description</CardTitle>
-              <CardDescription>Update the image or description if needed.</CardDescription>
+              <CardTitle>Book Images & Description</CardTitle>
+              <CardDescription>Update the images or description if needed.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Book Cover Image</Label>
-                {coverImageUrl || imagePreview ? (
+                {coverImageUrl ? (
                   <div className="relative w-full h-40">
-                    <img src={coverImageUrl || imagePreview || ''} alt="Preview" className="w-full h-full object-contain" />
+                    <Image src={coverImageUrl} alt="Cover" layout="fill" objectFit="contain" />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       className="absolute bottom-2 right-2"
-                      onClick={() => {
-                        setCoverImageUrl(null)
-                        setImagePreview(null)
-                      }}
+                      onClick={() => setCoverImageUrl(null)}
                     >
                       Change
                     </Button>
@@ -168,7 +182,7 @@ export default function EditBookPage() {
                     onClientUploadComplete={(res) => {
                       if (res && res[0]) {
                         setCoverImageUrl(res[0].url)
-                        toast.success("Image uploaded successfully")
+                        toast.success("Cover image uploaded successfully")
                       }
                     }}
                     onUploadError={(error: Error) => {
@@ -176,12 +190,39 @@ export default function EditBookPage() {
                     }}
                   />
                 )}
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                  ref={fileInputRef}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Additional Images</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {additionalImages.map((url, index) => (
+                    <div key={index} className="relative">
+                      <Image src={url} alt={`Additional image ${index + 1}`} width={100} height={100} objectFit="cover" className="rounded" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="absolute top-1 right-1"
+                        onClick={() => {
+                          setAdditionalImages(prev => prev.filter((_, i) => i !== index))
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <UploadButton
+                  endpoint="imageUploader"
+                  onClientUploadComplete={(res) => {
+                    if (res && res[0]) {
+                      setAdditionalImages(prev => [...prev, res[0].url])
+                      toast.success("Additional image uploaded successfully")
+                    }
+                  }}
+                  onUploadError={(error: Error) => {
+                    toast.error(`Upload failed: ${error.message}`)
+                  }}
                 />
               </div>
 

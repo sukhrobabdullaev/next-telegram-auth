@@ -18,6 +18,7 @@ import { UploadButton } from "@/lib/uploadthing";
 export default function AddBookPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [categories, setCategories] = useState<ICategory[]>([])
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -58,10 +59,14 @@ export default function AddBookPage() {
     const body = {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
+      author: formData.get('author') as string,
+      publisher: formData.get('publisher') as string,
+      publicationDate: formData.get('publicationDate') as string,
+      ISBN: formData.get('ISBN') as string,
       price: formData.get('price') as string,
       category: formData.get('category') as string,
       stock: formData.get('stock') as string,
-      coverImage: coverImageUrl,
+      images: [coverImageUrl, ...additionalImages].filter(Boolean) as string[],
     };
 
     try {
@@ -100,6 +105,26 @@ export default function AddBookPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="author">Author</Label>
+                <Input id="author" name="author" placeholder="Enter author name" required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="publisher">Publisher</Label>
+                <Input id="publisher" name="publisher" placeholder="Enter publisher name" required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="publicationDate">Publication Date</Label>
+                <Input id="publicationDate" name="publicationDate" type="date" required />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ISBN">ISBN</Label>
+                <Input id="ISBN" name="ISBN" placeholder="Enter ISBN" required />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="price">Price</Label>
                 <Input id="price" name="price" placeholder="19.99" type="number" step="0.01" required />
               </div>
@@ -129,8 +154,8 @@ export default function AddBookPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Book Image & Description</CardTitle>
-              <CardDescription>Upload an image and provide a detailed description of the book.</CardDescription>
+              <CardTitle>Book Images & Description</CardTitle>
+              <CardDescription>Upload images and provide a detailed description of the book.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -156,8 +181,8 @@ export default function AddBookPage() {
                     endpoint="imageUploader"
                     onClientUploadComplete={(res) => {
                       if (res && res[0]) {
-                        setCoverImageUrl(res[0].url);
-                        toast.success("Image uploaded successfully");
+                        setCoverImageUrl(res[0].ufsUrl);
+                        toast.success("Cover image uploaded successfully");
                       }
                     }}
                     onUploadError={(error: Error) => {
@@ -165,12 +190,39 @@ export default function AddBookPage() {
                     }}
                   />
                 )}
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                  ref={fileInputRef}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Additional Images</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {additionalImages.map((url, index) => (
+                    <div key={index} className="relative">
+                      <img src={url} alt={`Additional image ${index + 1}`} className="w-full h-32 object-cover rounded" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="absolute top-1 right-1"
+                        onClick={() => {
+                          setAdditionalImages(prev => prev.filter((_, i) => i !== index));
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <UploadButton
+                  endpoint="imageUploader"
+                  onClientUploadComplete={(res) => {
+                    if (res && res[0]) {
+                      setAdditionalImages(prev => [...prev, res[0].url]);
+                      toast.success("Additional image uploaded successfully");
+                    }
+                  }}
+                  onUploadError={(error: Error) => {
+                    toast.error(`Upload failed: ${error.message}`);
+                  }}
                 />
               </div>
 

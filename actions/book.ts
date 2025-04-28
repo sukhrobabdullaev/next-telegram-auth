@@ -15,12 +15,8 @@ export const getBooks = async (
   page: number = 1,
   limit: number = 10
 ): Promise<PaginatedResponse> => {
-  const session = await getSession();
-  const response = await fetch(`/api/books?page=${page}&limit=${limit}`, {
-    headers: {
-      Authorization: `Bearer ${session}`,
-    },
-  });
+  const response = await fetch(`/api/books?page=${page}&limit=${limit}`);
+
   if (!response.ok) {
     throw new Error("Failed to fetch books");
   }
@@ -28,12 +24,8 @@ export const getBooks = async (
 };
 
 export const getBookById = async (id: string): Promise<IBook> => {
-  const session = await getSession();
-  const response = await fetch(`/api/books/${id}`, {
-    headers: {
-      Authorization: `Bearer ${session}`,
-    },
-  });
+  const response = await fetch(`/api/books/${id}`);
+  
   if (!response.ok) {
     throw new Error("Failed to fetch book");
   }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Category from "@/models/category";
 import { adminMiddleware } from "@/middleware/auth";
-import { connectToDatabase } from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mogoose";
 
 // GET all categories
 export async function GET() {

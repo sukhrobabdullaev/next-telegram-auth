@@ -20,19 +20,18 @@ import { Edit, MoreHorizontal, Plus, Search, Trash, X, ChevronLeft, ChevronRight
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { getBooks, deleteBook } from "@/actions/book"
+import { getBooks, deleteBook, getBookById } from "@/actions/book"
 import type { IBook } from "@/models/book"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-
 
 export default function BooksPage() {
   const [books, setBooks] = useState<IBook[]>([])
   const [filteredBooks, setFilteredBooks] = useState<IBook[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [previewImage, setPreviewImage] = useState<string | null>(null)
-  const [previewTitle, setPreviewTitle] = useState<string>("")
+  const [previewBook, setPreviewBook] = useState<IBook | null>(null)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalBooks, setTotalBooks] = useState(0)
@@ -87,19 +86,36 @@ export default function BooksPage() {
     }
   }
 
-  const openImagePreview = (imageUrl: string, title: string) => {
-    setPreviewImage(imageUrl)
-    setPreviewTitle(title)
+  const openBookPreview = async (id: string) => {
+    try {
+      const book = await getBookById(id)
+      setPreviewBook(book)
+      setCurrentImageIndex(0)
+    } catch (error) {
+      toast.error("Failed to fetch book details")
+    }
   }
 
-  const closeImagePreview = () => {
-    setPreviewImage(null)
-    setPreviewTitle("")
+  const closeBookPreview = () => {
+    setPreviewBook(null)
+    setCurrentImageIndex(0)
   }
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage)
+    }
+  }
+
+  const nextImage = () => {
+    if (previewBook && currentImageIndex < previewBook.images.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1)
+    }
+  }
+
+  const prevImage = () => {
+    if (currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1)
     }
   }
 
@@ -155,10 +171,10 @@ export default function BooksPage() {
                   <TableCell>
                     <div
                       className="cursor-pointer transition-transform hover:scale-105"
-                      onClick={() => openImagePreview(book.coverImage || "/placeholder.svg", book.title)}
+                      onClick={() => openBookPreview(book.id)}
                     >
                       <Image
-                        src={book.coverImage || "/placeholder.svg"}
+                        src={book.images[0] || "/placeholder.svg"}
                         alt={book.title}
                         width={60}
                         height={80}
@@ -255,22 +271,43 @@ export default function BooksPage() {
         </CardContent>
       </Card>
 
-      {/* Image Preview Dialog */}
-      <Dialog open={!!previewImage} onOpenChange={() => closeImagePreview()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogTitle>{previewTitle}</DialogTitle>
-          {previewImage && (
-            <div className="relative aspect-[2/3] w-full">
-              <Image
-                src={previewImage}
-                alt={previewTitle}
-                fill
-                className="object-cover rounded-md"
-              />
+      {/* Book Preview Dialog */}
+      <Dialog open={!!previewBook} onOpenChange={() => closeBookPreview()}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogTitle>{previewBook?.title}</DialogTitle>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <div className="relative aspect-[2/3] w-full">
+                {previewBook && previewBook.images.length > 0 && (
+                  <Image
+                    src={previewBook.images[currentImageIndex]}
+                    alt={previewBook.title}
+                    fill
+                    className="object-cover rounded-md"
+                  />
+                )}
+                {previewBook && previewBook.images.length > 1 && (
+                  <div className="absolute bottom-2 left-0 right-0 flex justify-center space-x-2">
+                    <Button size="sm" onClick={prevImage} disabled={currentImageIndex === 0}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" onClick={nextImage} disabled={currentImageIndex === previewBook.images.length - 1}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+            <div className="space-y-4">
+              <p><strong>Author:</strong> {previewBook?.author}</p>
+              <p><strong>Price:</strong> ${previewBook?.price.toFixed(2)}</p>
+              <p><strong>Category:</strong> {previewBook?.category?.name}</p>
+              <p><strong>Stock:</strong> {previewBook?.stock}</p>
+              <p><strong>Description:</strong> {previewBook?.description}</p>
+            </div>
+          </div>
           <DialogClose asChild>
-            <Button variant="outline" onClick={closeImagePreview}>
+            <Button variant="outline" onClick={closeBookPreview}>
               Close
             </Button>
           </DialogClose>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mogoose";
 import Book from "@/models/book";
 import { adminMiddleware } from "@/middleware/auth";
 import Category from "@/models/category";
@@ -9,9 +9,10 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = await params;
   try {
     await connectToDatabase();
+    
     const book = await Book.findById(id).populate("category", "name slug");
     if (!book) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
@@ -27,7 +28,7 @@ export async function PUT(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = await params;
   try {
     await connectToDatabase();
     const isAdmin = await adminMiddleware(req as any);
@@ -35,7 +36,7 @@ export async function PUT(
 
     const body = await req.json();
 
-    const { title, description, price, category, stock, coverImage } = body;
+    const { title, description, author, publisher, publicationDate, images, ISBN, price, stock, category } = body;
 
     const updateData: Record<string, any> = {};
     if (title) updateData.title = title;
@@ -43,7 +44,11 @@ export async function PUT(
     if (price) updateData.price = parseFloat(price);
     if (category) updateData.category = category;
     if (stock) updateData.stock = parseInt(stock);
-    if (coverImage) updateData.coverImage = coverImage;
+    if (author) updateData.author = author;
+    if (publisher) updateData.publisher = publisher;
+    if (publicationDate) updateData.publicationDate = publicationDate;
+    if (images) updateData.images = images;
+    if (ISBN) updateData.ISBN = ISBN;
 
     const book = await Book.findByIdAndUpdate(id, updateData, { new: true });
 
@@ -62,7 +67,7 @@ export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const session = await mongoose.startSession();
   session.startTransaction();
 

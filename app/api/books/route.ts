@@ -1,7 +1,5 @@
-// /app/api/books/route.ts
-
 import { NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mogoose";
 import Book from "@/models/book";
 import Category from "@/models/category";
 import { adminMiddleware } from "@/middleware/auth";
@@ -9,15 +7,16 @@ import { adminMiddleware } from "@/middleware/auth";
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
+
     const isAdmin = await adminMiddleware(req as any);
     if (isAdmin.status !== 200) return isAdmin;
 
     const body = await req.json();
 
-    const { title, description, price, category, stock = 0, coverImage } = body;
+    const { title, description, author, publisher, publicationDate, images, ISBN, price, stock, category } = body;
 
     // Validate required fields
-    if (!title || !description || !price || !category || !coverImage) {
+    if (!title || !description || !price || !category || !author || !publisher || !publicationDate || !images || !ISBN || !stock) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -37,10 +36,14 @@ export async function POST(req: Request) {
     const book = await Book.create({
       title,
       description,
+      author,
+      publisher,
+      publicationDate,
+      images,
+      ISBN,
       price,
-      coverImage,
-      category,
       stock,
+      category,
     });
 
     // Add book to category
@@ -69,7 +72,7 @@ export async function GET(request: Request) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("category"),
+        .populate("category", "name slug"),
       Book.countDocuments(),
     ]);
 
