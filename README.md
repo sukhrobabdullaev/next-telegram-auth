@@ -5,6 +5,12 @@ A secure authentication system that leverages Telegram Bot API for OTP verificat
 [![GitHub license](https://img.shields.io/github/license/sukhrobabdullaev/next-telegram-auth)](https://github.com/sukhrobabdullaev/next-telegram-auth/blob/main/LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/sukhrobabdullaev/next-telegram-auth/pulls)
 
+## Demo
+
+Check out our demo video to see Next.js Telegram Authentication in action:
+
+[![Demo Video](https://i9.ytimg.com/vi/dgbBIZRIkmU/sddefault.jpg?sqp=CJSkvsAG-oaymwEmCIAFEOAD8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGEggVihyMA8=&rs=AOn4CLAF_VaVOdPIowZe1b6I2mNZr912kQ)](https://www.youtube.com/watch?v=dgbBIZRIkmU)
+
 ## Features
 
 - 🔐 Secure authentication using Telegram bots and OTP verification
